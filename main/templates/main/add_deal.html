@@ -1,0 +1,46 @@
+{% extends 'main/base.html' %}
+
+{% block title %}
+    <title>Добавить сделку</title>
+    <h1>Добавить новую сделку</h1>
+{% endblock %}
+
+{% block content %}
+    <a href="/home/">Назад</a>
+    <br>
+
+    <form method="post">
+        {% csrf_token %}
+        <p>
+            <label>Название:</label><br>
+            <input type="text" name="title" required>
+        </p>
+        <p>
+            <label>Сумма:</label><br>
+            <input type="number" name="amount" required>
+        </p>
+        <p>
+            <label>Стадия:</label><br>
+            <select name="stage_id">
+                <option value="NEW">Новая</option>
+                <option value="PREPARATION">Подготовка документов</option>
+                <option value="FINAL_INVOICE">Финальный счет</option>
+                <option value="EXECUTING">Исполнение</option>
+                <option value="PREPAYMENT_INVOICE">Счет на предоплату</option>
+                <option value="WON">Выиграна</option>
+                <option value="LOSE">Провалена</option>
+                <option value="APOLOGY">Провалена, требуется анализ</option>
+            </select>
+        </p>
+
+        <p>
+            <label>Лояльность:</label><br>
+            <input type="checkbox" name="loyal">
+        </p>
+        <button type="submit">Создать</button>
+    </form>
+
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% endif %}
+{% endblock %}

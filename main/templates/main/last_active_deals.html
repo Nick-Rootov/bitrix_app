@@ -1,0 +1,40 @@
+{% extends 'main/base.html' %}
+{% block title %}
+    <title>Активные сделки</title>
+    <h1>10 последних активных сделок</h1>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <a href="/home/">Назад</a>
+    <br>
+    <br>
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Стадия</th>
+                <th>Дата</th>
+                <th>Сумма</th>
+                <th>Лояльность</th>
+            </tr>
+            {% for deal in deals %}
+                <tr>
+                    <td>{{ deal.ID }}</td>
+                    <td>{{ deal.TITLE }}</td>
+                    <td>{{ deal.STAGE_ID }}</td>
+                    <td>{{ deal.DATE_CREATE }}</td>
+                    <td>{{ deal.OPPORTUNITY }}</td>
+                    <td>{{ deal.UF_CRM_1754146731437 }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}
