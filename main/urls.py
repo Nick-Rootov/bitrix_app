@@ -10,6 +10,7 @@ urlpatterns = [
     path('last-active-deals/', views.last_active_deals, name='last_active_deals'),
     path('add-deal/', views.add_deal, name='add_deal'),
     path('qr-generate/', views.qr_generate, name='qr_generate'),
-    #path('product/<int:product_id>/', views.product_detail, name='product_detail'),
     path('product/<signed_id>/', views.product_detail, name='product_detail'),
+    path('users_list/', views.active_users_list, name='active_users_list'),
+    path('calls-generate/', views.calls_generate, name='calls_generate'),
 ]

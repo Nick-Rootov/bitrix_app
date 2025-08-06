@@ -1,0 +1,69 @@
+{% extends 'main/base.html' %}
+{% block title %}
+    <title>Список пользователей</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+    <h4 class="mb-3"  style="margin-top: 70px;">Список пользователей</h4>
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Email</th>
+                <th>Отдел</th>
+                <th>Должность</th>
+                <th>Руководитель</th>
+                <th>Кол-во звонков</th>
+            </tr>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.ID }}</td>
+                    <td>
+                        <a href="#" class="user" data-user-id="{{ user.ID }}">{{ user.NAME }} {{ user.LAST_NAME }}</a>
+                    </td>
+                    <td>{{ user.EMAIL }}</td>
+                    <td>{{ user.NAME_DEPARTMENT }}</td>
+                    <td>{{ user.WORK_POSITION }}</td>
+                    <td>{{ user.HEAD }}</td>
+                    <td>{{ user.COUNT_CALLS }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+    <button class="col-md-3 btn btn-primary btn-lg" id="calls_gen_btn" style="margin-top: 20px;">Сгенерировать звонки</button>
+    <script src="https://api.bitrix24.com/api/v1/"></script>
+    <script>
+        BX24.init(function () {
+            const links = document.querySelectorAll(".user");
+            links.forEach(function (link) {
+                link.onclick = function () {
+                    const userId = this.dataset.userId;
+                    BX24.openPath("/company/personal/user/" + userId + "/");
+                };
+            });
+        });
+
+    </script>
+    <script>
+        document.getElementById("calls_gen_btn").addEventListener("click", function() {
+            fetch("/calls-generate/")
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Функция выполнена, обновляю страницу...");
+                    window.location.reload();  // Перезагружаем страницу
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                });
+        });
+    </script>
+{% endblock %}

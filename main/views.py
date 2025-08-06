@@ -17,8 +17,37 @@ import qrcode.image.svg
 from django.core import signing
 from django.core.signing import BadSignature
 from django.http import Http404
+import random
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+
+def check_calls(id,call_counts):
+    if id in call_counts:
+        count = call_counts[id]
+    else:
+        count = 0
+    return count
 
 
+def create_call_counts(calls):
+    call_counts = {}
+    for call in calls:
+        employee_id = call['PORTAL_USER_ID']
+
+        if employee_id in call_counts:
+            call_counts[employee_id] += 1  # Если ID уже есть в словаре — увеличиваем счётчик
+
+        else:
+            call_counts[employee_id] = 1  # Если нет — добавляем и ставим 1
+    return call_counts
+
+def add_head(department,user_dict,heads,user):
+    head_id = str(department['UF_HEAD'])
+    head = user_dict.get(head_id)
+    full_name = f"{head['NAME']} {head['LAST_NAME']}"
+    if full_name not in heads and user['ID'] != head['ID']:  # Проверка на дубликаты и что не руководитель себе
+        heads.append(full_name)
+    return heads
 @main_auth(on_start=True, set_cookie=True)
 def start(request):
     context = {
@@ -171,4 +200,95 @@ def product_detail(request, signed_id):
             'product': product['result'],
             'image_url': image['result']['productImages'][0]['detailUrl'],
             })
+
+
+@main_auth(on_cookies= True)
+def active_users_list(request):
+    auth_token = request.bitrix_user_token.auth_token
+
+    users = request.bitrix_user_token.call_api_method(
+        api_method='user.get',
+        params={
+            'auth': auth_token,
+            'ACTIVE': True,
+            'SELECT': ['ID', 'NAME', 'LAST_NAME', 'UF_DEPARTMENT', 'WORK_POSITION', 'EMAIL']
+        }
+    )['result']
+
+    departments = request.bitrix_user_token.call_api_method(
+        api_method='department.get',
+        params={
+            'auth': auth_token,
+        }
+    )['result']
+
+    # Создадим словарь для быстрого поиска департаментов и юзеров по id
+    department_dict = {dept['ID']: dept for dept in departments}
+    user_dict = {dept['ID']: dept for dept in users}
+    calls = request.bitrix_user_token.call_list_method( 'voximplant.statistic.get',
+        {
+            'FILTER': {
+                '>=CALL_START_DATE': (datetime.now() - timedelta(days=1)).isoformat(),
+                'CALL_TYPE': '1',
+                '>CALL_DURATION': 60  # Только звонки >1 минуты
+            }
+        }
+    )
+    print('звонков', calls)
+    call_counts = create_call_counts(calls)
+
+    for user in users:
+        user['HEAD'] = ''
+        heads = []
+        user['COUNT_CALLS'] = check_calls(user['ID'], call_counts)
+        department_ids = user["UF_DEPARTMENT"]
+        department = department_dict.get(str(department_ids[0]))
+        user['NAME_DEPARTMENT'] = department['NAME']
+        add_head(department, user_dict, heads, user)
+        if department.get('PARENT') is not None:
+            head_dep = department['PARENT']
+            while department.get('PARENT') is not None:
+                department = department_dict.get(department['PARENT'])
+                add_head(department, user_dict, heads, user)
+        if heads:
+            user['HEAD'] = ', '.join(heads)
+
+    return render(request, 'main/active_users_list.html', {
+        'users': users,
+    })
+
+
+@main_auth(on_cookies=True)
+def calls_generate(request):
+    auth_token = request.bitrix_user_token.auth_token
+    users = request.bitrix_user_token.call_api_method(
+        api_method='user.get',
+        params={
+            'auth': auth_token,
+            'ACTIVE': True,
+            'SELECT': ['ID']
+        }
+    )['result']
+    for i in range(5):
+        random_user = random.choice(users)  # Случайный user из списка
+        random_id = random_user['ID']  # Достаём его ID
+        call = request.bitrix_user_token.call_api_method(
+            api_method='telephony.externalcall.register',
+            params={
+                'USER_ID': random_id,
+                'PHONE_NUMBER': '+7' + ''.join([str(random.randint(0, 9)) for _ in range(10)]),
+                'TYPE': 1,
+                'SHOW': 0,
+            }
+        )['result']
+        calls = request.bitrix_user_token.call_api_method(
+            api_method='telephony.externalcall.finish',
+            params={
+                'CALL_ID': call['CALL_ID'],
+                'USER_ID': random_id,
+                'DURATION': '70',
+            }
+        )
+
+    return JsonResponse({"status": "success"})
 
