@@ -27,6 +27,8 @@ APP_SETTINGS = LocalSettingsClass(
 
 DOMAIN = "56218ef983f3-8301993767665431593.ngrok-free.app"
 #DOMAIN = "127.0.0.1:8000"
+WEBHOOK_URL = 'b24-67nbhl.bitrix24.ru/rest/1/ao84u753d8eyap48/'
+WEBHOOK_AUTH = '1/ao84u753d8eyap48/'
 
 DATABASES = {
     'default': {

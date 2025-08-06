@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 APP_SETTINGS = None
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,13 +127,7 @@ STATIC_URL = 'static/'
 from integration_utils.its_utils.mute_logger import MuteLogger
 ilogger = MuteLogger()
 
-# local settings
-try:
-    from local_settings import *
-except ImportError:
-    from warnings import warn
 
-    warn('create local_settings.py')
 
 if not APP_SETTINGS:
     from integration_utils.bitrix24.local_settings_class import LocalSettingsClass
@@ -152,3 +146,17 @@ X_FRAME_OPTIONS = 'ALLOW-FROM https://b24-67nbhl.bitrix24.ru'
 CSRF_TRUSTED_ORIGINS = ['https://b24-67nbhl.bitrix24.ru','https://*.bitrix24.ru',]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'main/static'),  # Путь к статике приложения
+]
+
+# local settings
+try:
+    from .local_settings import *
+except ImportError:
+    print('ERROR SETTINGS')
+    from warnings import warn
+
+    warn('create local_settings.py')

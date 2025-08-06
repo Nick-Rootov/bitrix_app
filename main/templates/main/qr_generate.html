@@ -1,0 +1,65 @@
+{% extends 'main/base.html' %}
+
+{% block title %}
+    <title>Генерация QR-кода</title>
+{% endblock %}
+
+{% block content %}
+    <h4 class="mb-3"  style="margin-top: 70px;">Генерация QR-кода товара</h4>
+    <form method="post">
+        {% csrf_token %}
+        <div class="col-1">
+            <label for="id" class="form-label">Введите ID товара:</label>
+            <div class="input-group has-validation">
+                <input type="text" class="form-control" id="id" name="id" placeholder="ID" required="">
+                <div class="invalid-feedback">
+                    id неверен
+                </div>
+            </div>
+        </div>
+        <button style="margin-top: 10px;" class="col-md-1 btn btn-primary btn-lg" type="submit">Создать</button>
+    </form>
+
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% endif %}
+
+
+    <div class="row mb-2">
+        <div class="col-md-3">
+            {% if qr_image %}
+                <div class="qr-code-container">
+                    <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code">
+                    <br>
+                    <a class="btn btn-primary btn-lg px-4 gap-3" href="{{product_url_qr}}" target="_blank">
+                        Перейти к товару
+                    </a>
+                    <a class="btn btn-outline-secondary btn-lg px-4" href="data:image/png;base64,{{ qr_image }}" download="qr_{{ product.NAME }}.png">
+                        Скачать QR-код
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            {% if product != None %}
+             <div class="row g-0 border rounded overflow-hidden flex-md-row mb-4 shadow-sm h-md-250 position-relative"  style="margin-right: 100px; margin-top: 30px;">
+                 <div class="col p-4 d-flex flex-column position-static">
+
+                     <h3 class="mb-0">{{product.NAME}}</h3>
+                     <div class="mb-1 text-body-secondary">ID товара: {{product.ID}} </div>
+                     <p class="mb-auto">Описание: {{product.DESCRIPTION}}</p>
+                     <strong class="d-inline-block mb-2 text-success-emphasis">Стоимость: {{product.PRICE}}</strong>
+                 </div>
+                 <div class="col-auto d-none d-lg-block">
+                     {% if image_url %}
+                        <img src="{{ image_url }}" alt="{{ product.NAME }}" width="300">
+                     {% else %}
+                        <p>Изображение отсутствует</p>
+                     {% endif %}
+                 </div>
+             </div>
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}

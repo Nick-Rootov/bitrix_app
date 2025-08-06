@@ -1,7 +1,6 @@
 {% extends 'main/base.html' %}
 {% block title %}
     <title>Активные сделки</title>
-    <h1>10 последних активных сделок</h1>
     <style>
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #ddd; padding: 8px; }
@@ -10,9 +9,8 @@
 {% endblock %}
 
 {% block content %}
-    <a href="/home/">Назад</a>
-    <br>
-    <br>
+
+    <h4 class="mb-3"  style="margin-top: 70px;">Последние 10 сделок</h4>
     {% if error %}
         <p style="color: red;">Ошибка: {{ error }}</p>
     {% else %}

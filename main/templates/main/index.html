@@ -2,8 +2,11 @@
 
 {% block title %}
     <title>Мое приложение Bitrix24</title>
-    <div class="container">
+{% endblock %}
+{% block content %}
+    <div style="margin-top: 100px;" class="container">
         <h1>Здравствуйте, {{ user_first_name }} {{ user_last_name }} !</h1>
+        <h10>Выберите пункт из меню сверху</h10>
     </div>
     <style>
         body {
@@ -18,13 +21,5 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
     </style>
-{% endblock %}
-{% block content %}
-    <div style="margin-top: 20px;">
-        <h3>Меню:</h3>
-        <ul>
-            <li><a href="/last-active-deals/">10 последних сделок</a></li>
-            <li><a href="/add-deal/">Добавить сделку</a></li>
-        </ul>
-    </div>
+
 {% endblock %}

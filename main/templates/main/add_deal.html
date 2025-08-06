@@ -2,26 +2,34 @@
 
 {% block title %}
     <title>Добавить сделку</title>
-    <h1>Добавить новую сделку</h1>
 {% endblock %}
 
 {% block content %}
-    <a href="/home/">Назад</a>
-    <br>
 
+    <h4 class="mb-3"  style="margin-top: 70px;">Добавить сделку</h4>
     <form method="post">
         {% csrf_token %}
-        <p>
-            <label>Название:</label><br>
-            <input type="text" name="title" required>
-        </p>
-        <p>
-            <label>Сумма:</label><br>
-            <input type="number" name="amount" required>
-        </p>
-        <p>
-            <label>Стадия:</label><br>
-            <select name="stage_id">
+        <div class="col-3">
+            <label for="title" class="form-label">Название:</label>
+            <div class="input-group has-validation">
+                <input type="text" class="form-control" id="title" name="title" placeholder="Название" required="">
+                <div class="invalid-feedback">
+                    Название неверно
+                </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="amount" class="form-label">Сумма:</label>
+            <div class="input-group has-validation">
+                <input type="text" class="form-control" id="amount" name="amount" placeholder="Сумма" required="">
+                <div class="invalid-feedback">
+                    Сумма неверна
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label for="stage_id" class="form-label">Стадия:</label><br>
+            <select class="form-select" id="stage_id" required="" name="stage_id">
                 <option value="NEW">Новая</option>
                 <option value="PREPARATION">Подготовка документов</option>
                 <option value="FINAL_INVOICE">Финальный счет</option>
@@ -31,13 +39,12 @@
                 <option value="LOSE">Провалена</option>
                 <option value="APOLOGY">Провалена, требуется анализ</option>
             </select>
-        </p>
-
-        <p>
-            <label>Лояльность:</label><br>
-            <input type="checkbox" name="loyal">
-        </p>
-        <button type="submit">Создать</button>
+        </div>
+        <div class="col-md-3 form-check"  style="margin-top: 20px;">
+            <input type="checkbox" class="form-check-input" name="loyal" id="loyal">
+            <label class="form-check-label" for="loyal">Лояльность</label>
+        </div>
+        <button class="col-md-3 btn btn-primary btn-lg" type="submit" style="margin-top: 20px;">Создать</button>
     </form>
 
     {% if error %}
