@@ -1,0 +1,36 @@
+{% extends 'main/base.html' %}
+
+
+{% block title %}
+    <title>Добавить сделку</title>
+{% endblock %}
+
+{% block content %}
+
+    <h4 class="mb-3"  style="margin-top: 70px;">Yandex карта с адресами компаний</h4>
+    <script src="https://api-maps.yandex.ru/2.1?apikey=9c1ce981-edd2-4687-9562-0838e2ddb85b&load=package.full&lang=ru_RU">
+    </script>
+    <script type="text/javascript">
+      ymaps.ready(init);
+      function init() {
+        var myMap = new ymaps.Map("YMapsID", {
+          center: [59.979632, 30.336010],
+          zoom: 15
+        });
+        const company = {{ company|safe }}
+        for (const comp of company) {
+            var myGeoObject = new ymaps.GeoObject({
+                geometry: {
+                    type: "Point",
+                    coordinates: comp['COORDS']
+                },
+                properties: {
+                    hintContent: comp['TITLE']
+                }
+            });
+            myMap.geoObjects.add(myGeoObject);
+        }
+      }
+    </script>
+    <div id="YMapsID"  style="width: 100%; height: 50em;"></div>
+{% endblock %}

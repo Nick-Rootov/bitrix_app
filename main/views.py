@@ -19,7 +19,13 @@ from django.core.signing import BadSignature
 from django.http import Http404
 import random
 from datetime import datetime, timedelta
-from django.http import JsonResponse
+import time
+from django.http import JsonResponse, HttpResponse
+from services.exports.exporter_factory import ExporterFactory
+import os
+from services.imports.importer_factory import ImporterFactory
+from django.contrib import messages
+
 
 def check_calls(id,call_counts):
     if id in call_counts:
@@ -48,6 +54,34 @@ def add_head(department,user_dict,heads,user):
     if full_name not in heads and user['ID'] != head['ID']:  # Проверка на дубликаты и что не руководитель себе
         heads.append(full_name)
     return heads
+
+
+def geocode_address(address):
+    base_url = "https://geocode-maps.yandex.ru/1.x/"
+    print(settings.YANDEX_API_KEY)
+    params = {
+        "geocode": address,
+        "apikey": settings.YANDEX_API_KEY,
+        "format": "json",
+    }
+
+    try:
+        response = requests.get(base_url, params=params)
+        data = response.json()
+        # Парсим координаты из ответа
+        pos = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        parts = pos.split()
+        lat = float(parts[0])
+        lon = float(parts[1])
+        return {"lat": lat, "lon": lon}
+
+    except (KeyError, IndexError):
+        print(f"Ошибка геокодирования для адреса: {address}")
+        return None
+    except Exception as e:
+        print(f"Ошибка запроса: {e}")
+        return None
+
 @main_auth(on_start=True, set_cookie=True)
 def start(request):
     context = {
@@ -214,7 +248,7 @@ def active_users_list(request):
             'SELECT': ['ID', 'NAME', 'LAST_NAME', 'UF_DEPARTMENT', 'WORK_POSITION', 'EMAIL']
         }
     )['result']
-
+    print(users)
     departments = request.bitrix_user_token.call_api_method(
         api_method='department.get',
         params={
@@ -292,3 +326,172 @@ def calls_generate(request):
 
     return JsonResponse({"status": "success"})
 
+@main_auth(on_cookies=True)
+def map(request):
+    company = request.bitrix_user_token.call_api_method(
+        api_method='crm.company.list',
+        params={
+            'SELECT': ['ID', 'TITLE']
+        }
+    )['result']
+
+    address = request.bitrix_user_token.call_api_method(
+        api_method='crm.address.list',
+        params={
+            'SELECT': ['ENTITY_ID', 'ADDRESS_2']
+        }
+    )['result']
+
+    address_dict = {ad['ENTITY_ID']: ad['ADDRESS_2'] for ad in address}
+    for comp in company:
+        comp['ADDRESS'] = address_dict.get(comp['ID'], 'Адрес неизвестен')
+        coords = geocode_address(comp['ADDRESS'])
+        if coords:
+            comp['COORDS'] = [coords['lon'], coords['lat']]
+        else:
+            comp['COORDS'] = None
+
+
+    print(company)
+    return render(request, 'main/map.html', {
+        'company': company,
+    })
+
+
+@main_auth(on_cookies=True)
+def export_data(request):
+    if request.method == 'POST':
+        format_type = request.POST.get('export_format', 'csv')  # По умолчанию CSV
+
+        contacts = request.bitrix_user_token.call_api_method(
+            api_method='crm.contact.list',
+            params={
+                'SELECT': ['ID', 'NAME', 'LAST_NAME', 'PHONE', 'EMAIL', 'COMPANY_ID']
+            }
+        )['result']
+        departments = request.bitrix_user_token.call_api_method(
+            api_method='crm.company.list',
+            params={
+                'SELECT': ['ID', 'TITLE'],
+            }
+        )['result']
+        department_dict = {dept['ID']: dept for dept in departments}
+        for contact in contacts:
+            contact['PHONE'] = contact['PHONE'][0]['VALUE']
+            contact['EMAIL'] = contact['EMAIL'][0]['VALUE']
+            contact['COMPANY'] = department_dict.get(contact['COMPANY_ID'])['TITLE']
+            contact.pop('ID', None)
+            contact.pop('COMPANY_ID', None)
+        print("data:", contacts)
+        try:
+            exporter = ExporterFactory.get_exporter(format_type)
+            file_path = f"export.{format_type}"
+            exporter.export(contacts, file_path)
+
+            # Отправляем файл пользователю
+            with open(file_path, 'rb') as f:
+                response = HttpResponse(f.read(), content_type=f"application/{format_type}")
+                response['Content-Disposition'] = f'attachment; filename=export.{format_type}'
+                return response
+
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return render(request, 'main/export_data.html')
+
+
+@main_auth(on_cookies=True)
+def import_data(request):
+    if request.method == 'POST':
+        uploaded_file = request.FILES['import_file']
+        file_name, file_ext = os.path.splitext(uploaded_file.name)
+        if file_ext not in ['.csv', '.xlsx']:
+            return JsonResponse({'error': 'Неподдерживаемый формат файла'}, status=400)
+        try:
+            # Сохраняем временный файл
+            temp_path = f"temp_import{file_ext}"
+            with open(temp_path, 'wb+') as destination:
+                for chunk in uploaded_file.chunks():
+                    destination.write(chunk)
+
+            # Получаем нужный импортер
+            importer = ImporterFactory.get_importer(file_ext)
+
+            # Импортируем данные
+            data_contacts = importer.import_data(temp_path)
+
+            print('data_contacts', data_contacts)
+
+            contacts = request.bitrix_user_token.call_api_method(
+                api_method='crm.contact.list',
+                params={
+                    'SELECT': ['ID', 'NAME', 'LAST_NAME', 'PHONE', 'EMAIL', 'COMPANY_ID']
+                }
+            )['result']
+            departments = request.bitrix_user_token.call_api_method(
+                api_method='crm.company.list',
+                params={
+                    'SELECT': ['ID', 'TITLE'],
+                }
+            )['result']
+            contacts_to_add = [] # Список пользователей для добавления
+            contacts_dict = {} # Словарь существующих емейлов
+            for contact in contacts:
+                email = contact['EMAIL'][0]['VALUE']
+                contact['EMAIL'] = email
+                contacts_dict[email] =contact['ID']
+            department_dict = {dept['TITLE']: dept['ID'] for dept in departments}
+
+            for cont in data_contacts:
+                email = cont['EMAIL']
+                if email not in contacts_dict:
+                    contacts_to_add.append(cont)  # Добавляем в список на вставку
+
+            for cont in contacts_to_add:
+                if department_dict.get(cont['COMPANY']) or cont['COMPANY'] is None:
+                    dept_id = department_dict.get(cont['COMPANY'])
+                else:
+                    result = request.bitrix_user_token.call_api_method(
+                        api_method='crm.company.add',
+                        params={
+                            'fields': {
+                                'TITLE': cont['COMPANY'],
+                            }
+                        }
+                    )
+                    if 'error' in result:
+                        print(f"Ошибка при создании компании: {result['error_description']}")
+                        dept_id = None
+                    # Если успешный ответ
+                    elif 'result' in result:
+                        dept_id = result['result']
+                    else:
+                        print("Неожиданный формат ответа от API:", result)
+                        dept_id = None
+                cont['COMPANY_ID'] = dept_id
+                request.bitrix_user_token.call_api_method(
+                    api_method='crm.contact.add',
+                    params={
+                        'fields': {
+                            'NAME': cont['NAME'],
+                            'LAST_NAME': cont['LAST_NAME'],
+                            'COMPANY_ID': cont['COMPANY_ID'],
+                            'PHONE': [{'VALUE': '+' + str(cont['PHONE'])}],
+                            'EMAIL': [{'VALUE': cont['EMAIL']}],
+                        }
+                    }
+                )
+            #return JsonResponse({'status': 'success','data': imported_data})
+            messages.success(request, 'Данные успешно импортированы!')
+            return redirect('main:import_data')
+
+
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f"Ошибка импорта: {str(e)}"}, status=500)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    return render(request, 'main/import_data.html')

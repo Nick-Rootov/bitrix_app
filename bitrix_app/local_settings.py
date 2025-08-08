@@ -29,6 +29,8 @@ DOMAIN = "56218ef983f3-8301993767665431593.ngrok-free.app"
 #DOMAIN = "127.0.0.1:8000"
 WEBHOOK_URL = 'b24-67nbhl.bitrix24.ru/rest/1/ao84u753d8eyap48/'
 WEBHOOK_AUTH = '1/ao84u753d8eyap48/'
+YANDEX_API_KEY = '28980069-6fc8-42c0-bf22-f7c9ef27cb5c'
+YANDEX_API_KEY_2 = '9c1ce981-edd2-4687-9562-0838e2ddb85b'
 
 DATABASES = {
     'default': {

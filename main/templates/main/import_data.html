@@ -1,0 +1,25 @@
+{% extends 'main/base.html' %}
+
+{% block title %}
+    <title>Импорт контактов</title>
+{% endblock %}
+
+{% block content %}
+
+    <h4 class="mb-3"  style="margin-top: 70px;">Импорт контактов</h4>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="col-md-3">
+            <label for="importFile" class="form-label">Выберите файл для импорта:</label>
+            <input class="form-control" type="file" id="importFile" name="import_file" required
+                   accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+            <div class="form-text">Поддерживаемые форматы: CSV, XLSX (Excel)</div>
+        </div>
+        <button class="col-md-3 btn btn-primary btn-lg" id="export_btn" type="submit" style="margin-top: 20px;">Импортировать</button>
+    </form>
+
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% endif %}
+
+{% endblock %}

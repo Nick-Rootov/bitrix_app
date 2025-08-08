@@ -13,4 +13,7 @@ urlpatterns = [
     path('product/<signed_id>/', views.product_detail, name='product_detail'),
     path('users_list/', views.active_users_list, name='active_users_list'),
     path('calls-generate/', views.calls_generate, name='calls_generate'),
+    path('map/', views.map, name='map'),
+    path('export-data/', views.export_data, name='export_data'),
+    path('import-data/', views.import_data, name='import_data'),
 ]

@@ -1,0 +1,26 @@
+{% extends 'main/base.html' %}
+
+{% block title %}
+    <title>Экспорт контактов</title>
+{% endblock %}
+
+{% block content %}
+
+    <h4 class="mb-3"  style="margin-top: 70px;">Экспорт контактов</h4>
+    <form method="post">
+        {% csrf_token %}
+        <div class="col-md-3">
+            <label for="export_format" class="form-label">Формат:</label><br>
+            <select class="form-select" id="export_format" required="" name="export_format">
+                <option value="csv">CSV</option>
+                <option value="xlsx">XLSX</option>
+            </select>
+        </div>
+        <button class="col-md-3 btn btn-primary btn-lg" id="export_btn" type="submit" style="margin-top: 20px;">Экспортировать</button>
+    </form>
+
+    {% if error %}
+        <p style="color: red;">Ошибка: {{ error }}</p>
+    {% endif %}
+
+{% endblock %}
