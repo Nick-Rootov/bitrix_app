@@ -362,24 +362,26 @@ def map(request):
 def export_data(request):
     if request.method == 'POST':
         format_type = request.POST.get('export_format', 'csv')  # По умолчанию CSV
-
-        contacts = request.bitrix_user_token.call_api_method(
-            api_method='crm.contact.list',
-            params={
+        contacts = request.bitrix_user_token.call_list_method(
+            'crm.contact.list',
+            {
                 'SELECT': ['ID', 'NAME', 'LAST_NAME', 'PHONE', 'EMAIL', 'COMPANY_ID']
             }
-        )['result']
-        departments = request.bitrix_user_token.call_api_method(
-            api_method='crm.company.list',
-            params={
+        )
+        departments = request.bitrix_user_token.call_list_method(
+            'crm.company.list',
+            {
                 'SELECT': ['ID', 'TITLE'],
             }
-        )['result']
+        )
         department_dict = {dept['ID']: dept for dept in departments}
         for contact in contacts:
             contact['PHONE'] = contact['PHONE'][0]['VALUE']
             contact['EMAIL'] = contact['EMAIL'][0]['VALUE']
-            contact['COMPANY'] = department_dict.get(contact['COMPANY_ID'])['TITLE']
+            try:
+                contact['COMPANY'] = department_dict[contact['COMPANY_ID']]['TITLE']
+            except (KeyError, TypeError):
+                contact['COMPANY'] = None
             contact.pop('ID', None)
             contact.pop('COMPANY_ID', None)
         print("data:", contacts)
@@ -422,24 +424,24 @@ def import_data(request):
 
             print('data_contacts', data_contacts)
 
-            contacts = request.bitrix_user_token.call_api_method(
-                api_method='crm.contact.list',
-                params={
+            contacts = request.bitrix_user_token.call_list_method(
+                'crm.contact.list',
+                {
                     'SELECT': ['ID', 'NAME', 'LAST_NAME', 'PHONE', 'EMAIL', 'COMPANY_ID']
                 }
-            )['result']
-            departments = request.bitrix_user_token.call_api_method(
-                api_method='crm.company.list',
-                params={
+            )
+            departments = request.bitrix_user_token.call_list_method(
+                'crm.company.list',
+                {
                     'SELECT': ['ID', 'TITLE'],
                 }
-            )['result']
+            )
             contacts_to_add = [] # Список пользователей для добавления
             contacts_dict = {} # Словарь существующих емейлов
             for contact in contacts:
                 email = contact['EMAIL'][0]['VALUE']
                 contact['EMAIL'] = email
-                contacts_dict[email] =contact['ID']
+                contacts_dict[email] = contact['ID']
             department_dict = {dept['TITLE']: dept['ID'] for dept in departments}
 
             for cont in data_contacts:
